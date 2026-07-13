@@ -1,0 +1,78 @@
+<body>
+    <canvas id="canvas" style="position: absolute; width: 100%; height: 100%;"></canvas>
+
+    <script>
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+
+        let vector = {
+            x:0,
+            y:1
+        }
+
+        var pressedKeys = {};
+        window.onkeyup = function (e) { pressedKeys[e.key.toLowerCase()] = false; }
+        window.onkeydown = function (e) { pressedKeys[e.key.toLowerCase()] = true; }
+
+        function stepToZero(n, step) {
+            if (n > step) {
+                n -= step
+            } else if (n < step) {
+                n += step
+            }
+        }
+        
+        function reduce(a, b) {
+            // Determine the maximum value between the two numbers
+            const max = Math.max(a, b);
+
+            // Check if the maximum value is zero to avoid division by zero
+            if (max === 0) {
+                // If both numbers are zero, return them as is
+                return { scaledA: 0, scaledB: 0 };
+            }
+
+            // Scale the numbers so that the largest is 1 and the other is proportionally scaled
+            const scaledA = a / max;
+            const scaledB = b / max;
+
+            // Return the scaled values as an object
+            return [scaledA, scaledB];
+        }
+        
+        setInterval(() => {
+            if (pressedKeys["w"]) {
+                vector.y += .1
+            }
+            if (pressedKeys["a"]) {
+                vector.x -= .1
+            }
+            if (pressedKeys["s"]) {
+                vector.y -= .1
+            }
+            if (pressedKeys["d"]) {
+                vector.x += .1
+            }
+
+
+            let displayWid = canvas.width;
+            let displayHie = canvas.height;
+
+            ctx.clearRect(0, 0, displayWid, displayHie);
+
+            let newv = reduce(vector.x, vector.y)
+            console.log(newv)
+
+            ctx.beginPath();
+            ctx.moveTo(50, 50);
+            ctx.lineTo(50+(newv[0]*10), 50+(newv[1]*10));
+            ctx.stroke();
+        }, 1)
+
+
+        window.onresize = () => {
+            canvas.width = window.innerWidth/8
+            canvas.height = window.innerHeight/8
+        };
+    </script>
+</body>

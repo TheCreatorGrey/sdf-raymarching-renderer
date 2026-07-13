@@ -1,0 +1,119 @@
+from ursina import *
+from ursina.shaders import basic_lighting_shader
+import math
+import numpy as np
+
+app = Ursina()
+
+EditorCamera()
+
+Entity(model="cube", shader=basic_lighting_shader)
+
+
+
+def angle_to_vector(angle):
+    return Math.Cos(angle), Math.Sin(angle)
+
+def euler_to_vector(euler):
+    yaw, pitch, roll = euler
+
+    # First calculate the "fan pattern" ignoring pitch
+
+    print(yaw, pitch, roll)
+
+    pitch = pitch % (2*math.pi)
+    yaw = yaw % (2*math.pi)
+    roll = roll % (2*math.pi)
+
+    x = math.sin(yaw)
+    z = math.cos(yaw)
+
+
+    # First formula finds x, y, and z from angles
+    # AHA! the 
+
+
+    # Then offset that using the pitch
+
+    # Look at me using SOHCAHTOA
+    # Are you proud of me algebra 2 teacher?
+
+    # We have the length of the hypot (just 1, 1 unit ahead)
+    # and the angle, SOH and CAH will be used to find the lengths of the other sides.
+
+    # Solve for opp (y axis)
+    # sin(theta) = opp / hypot
+    # opp = sin(pitch)*hypot
+    y = math.sin(pitch)
+
+    # Now for CAH
+    # cos(th) = adj / hypot
+    # adj = cos(pitch)*hypot
+    z += math.cos(pitch)
+
+    return x, y, z
+
+
+voxels = np.ones((4, 4, 4))
+
+ray_cubes = []
+def ray(rotation, origin, sliceLength, slices):
+    vector = euler_to_vector(rotation)
+    current = origin
+
+    for s in range(slices):
+        for v in voxels:
+            voxpos = [
+                round(current[0]),
+                round(current[1]),
+                round(current[2])
+            ]
+
+            if voxpos[0] in voxels:
+                if voxpos[1] in voxels[voxpos[0]]:
+                    if voxpos[2] in voxels[voxpos[0]][voxpos[1]]:
+                        return s #voxels[voxpos[0]][voxpos[1]][voxpos[2]]
+
+        current[0] += vector[0]*sliceLength
+        current[1] += vector[1]*sliceLength
+        current[2] += vector[2]*sliceLength
+
+        ray_cubes.append(Entity(model="cube", shader=basic_lighting_shader, position=(current[0], current[1], current[2]), scale=0.04))
+        
+
+print(ray([0, 1, 0], [0, 0, 0], .1, 4))
+
+rotation_x = 0
+rotation_y = 0
+
+def refresh_rays():
+    for e in ray_cubes:
+        destroy(e)
+
+    width, height = 6, 4
+    for y in range(height):
+        for x in range(width):
+            cast = ray([rotation_x-((x/width)-0.5), rotation_y-((y/height)-0.5), 0], [0, 0, -2], .1, 10)
+            if cast:
+                #pygame.draw.rect(screen, (200-(cast*10), 50, 50), (x, y, 1, 1))
+                pass
+                #Entity(model="cube", shader=basic_lighting_shader)
+
+def input(key):
+    global rotation_x, rotation_y
+
+
+
+    if key == "r":
+        rotation_x+=1
+        refresh_rays()
+
+    if key == "o":
+        rotation_y+=1
+        refresh_rays()
+        
+
+
+
+
+app.run()
