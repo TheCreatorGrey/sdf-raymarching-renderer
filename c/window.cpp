@@ -36,7 +36,7 @@ Window::~Window() // Called when Window is deinitialized
 void Window::set_pixel(int x, int y, int r, int g, int b)
 {
     SDL_SetRenderDrawColor(renderer, r, g, b, 1);
-    SDL_RenderDrawPoint(renderer, x+(screen_width/2), y+(screen_height/2));
+    SDL_RenderDrawPoint(renderer, x, y);
 }
 
 void Window::refresh()
@@ -51,13 +51,20 @@ void Window::refresh()
                 break;
 
             case SDL_KEYDOWN:
-                keys[e.key.keysym.sym] = true;
                 std::cout << e.key.keysym.sym;
                 std::cout << "\n";
+                if (0 < e.key.keysym.sym && e.key.keysym.sym < 1000) {
+                    keys[e.key.keysym.sym] = true;
+                    
+                }
+                
                 break;
 
             case SDL_KEYUP:
-                keys[e.key.keysym.sym] = false;
+                if (0 < e.key.keysym.sym && e.key.keysym.sym < 1000) {
+                    keys[e.key.keysym.sym] = false;
+                }
+
                 break;
         }
     }

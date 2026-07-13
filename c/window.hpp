@@ -9,7 +9,7 @@ class Window
         Window();
         ~Window();
 
-        bool keys[400]; // !! Will make segfault if not enough range for key codes
+        bool keys[1000]; // !! Will make segfault if not enough range for key codes
         bool open;
 
         void set_pixel(int, int, int, int, int);
