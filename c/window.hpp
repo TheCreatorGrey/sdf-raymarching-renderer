@@ -2,6 +2,7 @@
 
 #include <SDL2/SDL.h>
 #include <iostream>
+#include <map>
 
 class Window
 {
@@ -9,7 +10,7 @@ class Window
         Window();
         ~Window();
 
-        bool keys[1000]; // !! Will make segfault if not enough range for key codes
+        std::map<int, bool> keys; // !! Will make segfault if not enough range for key codes
         bool open;
 
         void set_pixel(int, int, int, int, int);

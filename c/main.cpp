@@ -45,20 +45,21 @@ int main()
 
     
     auto ray_vector = [](float vec[], float scan_pitch, float scan_yaw, float cam_pitch, float cam_yaw) {
-        float x = cos(scan_pitch) * sin(scan_yaw);
-        float y = -sin(scan_pitch);
+        float x = sin(scan_pitch); // -
+        float y = cos(scan_pitch) * sin(scan_yaw);
         float z = cos(scan_pitch) * cos(scan_yaw);
 
 
         float distance = sqrt(pow(z, 2) + pow(y, 2));
+        float angle = atan2(z, y);
 
         // Now calculate the new offsets based on the camera x/pitch angle
         // Opposite is y distance, Adjacent is z distance
         // SOH = sin(cam_pitch) = opposite / hypot
-        y = sin(scan_pitch+cam_pitch)*distance; // Reassign offset
+        y = sin(angle+cam_pitch)*distance; // Reassign offset
 
         // Repeat for CAH (cos adjacent hypot)
-        z = cos(scan_pitch+cam_pitch)*distance;
+        z = cos(angle+cam_pitch)*distance;
 
 
         // IT'S VERY IMPORTANT THAT THE TOP DOWN TRANSFORM HAPPENS AFTER THE FROM THE SIDE TRANSFORM
@@ -75,7 +76,7 @@ int main()
         // theta = atan(opp/adj)
         // math is so cool for real
 
-        float angle = atan2(x, z);
+        angle = atan2(x, z);
 
         z = sin(angle+cam_yaw)*distance;
         x = cos(angle+cam_yaw)*distance;
@@ -131,7 +132,10 @@ int main()
 
     float camera_rx = 0;
     float camera_ry = 0;
-    float camera_rz = 0;
+    //float camera_rz = 0;
+
+    float camera_rx_rad; // Converted from degrees
+    float camera_ry_rad;
 
     SDL_Event event;
 
@@ -158,22 +162,52 @@ int main()
         }
 
         if (win.keys['a']) {
-            camera_x -= .1;
-        }
-
-        if (win.keys['d']) {
             camera_x += .1;
         }
 
-        if (win.keys['q']) {
-            camera_y += .1;
+        if (win.keys['d']) {
+            camera_x -= .1;
         }
 
-        if (win.keys['e']) {
+        if (win.keys['q']) {
             camera_y -= .1;
         }
 
+        if (win.keys['e']) {
+            camera_y += .1;
+        }
+
+        if (win.keys[1073741906]) { // Up key
+            camera_rx += 1;
+
+            std::cout << camera_ry;
+            std::cout << "\n";
+        }
+
+        if (win.keys[1073741905]) { // Down key
+            camera_rx -= 1;
+            std::cout << camera_ry;
+            std::cout << "\n";
+            std::cout << camera_rx;
+            std::cout << "\n\n";
+
+            if (camera_ry < 1) {
+                //camera_ry = 0; //?
+            }
+        }
+
+        if (win.keys[1073741904]) { // Left key
+            camera_ry -= 1;
+        }
+
+        if (win.keys[1073741903]) { // Right key
+            camera_ry += 1;
+        }
+
         //auto begin = std::chrono::high_resolution_clock::now();
+                                                // offset
+        camera_rx_rad = ((M_PI/180) * (camera_rx-90));
+        camera_ry_rad = ((M_PI/180) * (camera_ry+90));
 
         // Coordinate system has 0,0 at center
         for (int x=0; x <= win.screen_width; x+=downres) {
@@ -183,7 +217,7 @@ int main()
                 float rel_x = ((float)x/win.screen_width)-0.5;
                 float rel_y = ((float)y/win.screen_height)-0.5;
 
-                cast(ray_color, rel_x, rel_y, camera_rx, camera_ry, camera_x, camera_y, camera_z, .1, 64);
+                cast(ray_color, rel_x, rel_y, camera_rx_rad, camera_ry_rad, camera_x, camera_y, camera_z, .1, 64);
 
                 //std::cout << rel_x;
                 

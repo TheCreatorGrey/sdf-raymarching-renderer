@@ -53,17 +53,12 @@ void Window::refresh()
             case SDL_KEYDOWN:
                 std::cout << e.key.keysym.sym;
                 std::cout << "\n";
-                if (0 < e.key.keysym.sym && e.key.keysym.sym < 1000) {
-                    keys[e.key.keysym.sym] = true;
-                    
-                }
+                keys[e.key.keysym.sym] = true;
                 
                 break;
 
             case SDL_KEYUP:
-                if (0 < e.key.keysym.sym && e.key.keysym.sym < 1000) {
-                    keys[e.key.keysym.sym] = false;
-                }
+                keys[e.key.keysym.sym] = false;
 
                 break;
         }
