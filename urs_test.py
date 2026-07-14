@@ -8,6 +8,9 @@ app = Ursina()
 EditorCamera()
 
 Entity(model="cube", shader=basic_lighting_shader)
+Entity(model="cube", shader=basic_lighting_shader, color=color.blue, scale=0.5, position=(0, 0, 1))
+Entity(model="cube", shader=basic_lighting_shader, color=color.red, scale=0.5, position=(1, 0, 0))
+Entity(model="cube", shader=basic_lighting_shader, color=color.green, scale=0.5, position=(0, 1, 0))
 
 
 # Generate the fan pattern
@@ -17,9 +20,17 @@ Entity(model="cube", shader=basic_lighting_shader)
 def ray_vector(scan_pitch, scan_yaw, cam_pitch, cam_yaw):
     # Scan pitch is the horizontal angle that the ray is cast from the camera. You can guess what scan yaw is
 
-    x = math.cos(scan_pitch) * math.sin(scan_yaw)
-    y = -math.sin(scan_pitch)
+    x = math.sin(scan_pitch)
+    y = math.cos(scan_pitch) * math.sin(scan_yaw)
     z = math.cos(scan_pitch) * math.cos(scan_yaw)
+
+    #x = math.cos(scan_yaw) * math.sin(scan_pitch)
+    #y = math.sin(scan_yaw)*math.cos(scan_pitch)
+    #z = math.sin(scan_pitch)
+
+    # Y -> Z
+    # x -> y
+    # 
 
     # This is the position relative to the camera. It would be the points position if the camera was located at 0 and with no rotation
     # The point needs to be offset according to the camera's rotation
@@ -39,13 +50,15 @@ def ray_vector(scan_pitch, scan_yaw, cam_pitch, cam_yaw):
     # Using pythagorean, I can find the hypot/distance in 2d space:
     distance = math.sqrt(math.pow(z, 2) + math.pow(y, 2))
 
+    angle = math.atan2(z, y)
+
     # Now calculate the new offsets based on the camera x/pitch angle
     # Opposite is y distance, Adjacent is z distance
     # SOH = sin(cam_pitch) = opposite / hypot
-    y = math.sin(scan_pitch+cam_pitch)*distance # Reassign offset
+    y = math.sin(angle+cam_pitch)*distance # Reassign offset
 
     # Repeat for CAH (cos adjacent hypot)
-    z = math.cos(scan_pitch+cam_pitch)*distance
+    z = math.cos(angle+cam_pitch)*distance
 
 
     # IT'S VERY IMPORTANT THAT THE TOP DOWN TRANSFORM HAPPENS AFTER THE FROM THE SIDE TRANSFORM
@@ -64,7 +77,7 @@ def ray_vector(scan_pitch, scan_yaw, cam_pitch, cam_yaw):
 
     angle = math.atan2(x, z)
 
-    print(angle)
+    #print(angle)
 
     z = math.sin(angle+cam_yaw)*distance
     x = math.cos(angle+cam_yaw)*distance
@@ -117,7 +130,7 @@ def refresh_rays():
     width, height = 10, 4
     for y in range(height):
         for x in range(width):
-            cast = ray(((x+0.5)/width)-0.5, ((y+0.5)/height)-0.5, rotation_x, rotation_y, [0, 0, -2], .1, 10)
+            cast = ray((x/width)-0.5, (y/height)-0.5, rotation_x, rotation_y, [0, 0, -2], .1, 10)
             if cast:
                 #pygame.draw.rect(screen, (200-(cast*10), 50, 50), (x, y, 1, 1))
                 pass
@@ -128,16 +141,24 @@ def input(key):
 
 
 
-    if key == "r":
+    if key == "w":
         rotation_x+=1
         refresh_rays()
 
-    if key == "o":
+    if key == "s":
+        rotation_x-=1
+        refresh_rays()
+
+    if key == "a":
         rotation_y+=1
         refresh_rays()
+
+    if key == "d":
+        rotation_y-=1
+        refresh_rays()
         
-
-
+    if key == "h":
+        refresh_rays()
 
 
 app.run()
