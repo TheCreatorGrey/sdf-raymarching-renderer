@@ -39,6 +39,19 @@ void Window::set_pixel(int x, int y, int r, int g, int b)
     SDL_RenderDrawPoint(renderer, x, y);
 }
 
+void Window::pixel_downres(int x, int y, int r, int g, int b, int downres)
+{
+    SDL_SetRenderDrawColor(renderer, r, g, b, 1);
+
+    SDL_Rect rect;
+    rect.x = x;
+    rect.y = y;
+    rect.w = downres;
+    rect.h = downres;
+
+    SDL_RenderFillRect(renderer, &rect);
+}
+
 void Window::refresh()
 {
     SDL_Event e;

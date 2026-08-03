@@ -14,6 +14,7 @@ class Window
         bool open;
 
         void set_pixel(int, int, int, int, int);
+        void pixel_downres(int, int, int, int, int, int);
         void refresh();
         void clear();
 
