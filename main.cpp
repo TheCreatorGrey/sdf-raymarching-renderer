@@ -4,12 +4,21 @@
 #include "window.hpp"
 #include <chrono>
 
+
+float sdfCube(float x, float y, float z, float sx, float sy, float sz, float rad) {
+    float dx = abs(x - sx)-rad;
+    float dy = abs(y - sy)-rad;
+    float dz = abs(z - sz)-rad;
+
+    return fmax(dx, fmax(dy, dz));
+}
+
 float sdfSphere(float x, float y, float z, float sx, float sy, float sz, float rad) {
     return sqrt(pow(x-sx, 2) + pow(y-sy, 2) + pow(z-sz, 2)) - rad; // radius
 }
 
 float signedDistance(float x, float y, float z) {
-    return fmin(sdfSphere(x, y, z, 0, 0, 0, 5), sdfSphere(x, y, z, 4, 0, 0, 3))+1;
+    return fmax(sdfCube(x, y, z, 0, 0, 0, 1), -sdfSphere(x, y, z, 0, 0, 0, 1.2));
 }
 
 
