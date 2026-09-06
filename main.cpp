@@ -5,21 +5,136 @@
 #include <chrono>
 
 
-float sdfCube(float x, float y, float z, float sx, float sy, float sz, float rad) {
-    float dx = abs(x - sx)-rad;
-    float dy = abs(y - sy)-rad;
-    float dz = abs(z - sz)-rad;
+struct coordinate {
+    float x;
+    float y;
+    float z;
+};
 
-    return fmax(dx, fmax(dy, dz));
+//struct coordinate repeat(struct coordinate point) {
+//    struct coordinate result;
+//    result.x = fmod(point.x, 5.0) * sign(point.x);
+//    result.y = fmod(point.y, 5.0) * sign(point.y);
+//    result.z = fmod(point.z, 5.0) * sign(point.z);
+//    return result;
+//}
+
+struct coordinate rotate(struct coordinate point, struct coordinate origin, float angle_rad) {
+    // High school trig
+    float x_leg = (point.x-origin.x);
+    float y_leg = (point.y-origin.y);
+    float hypot = sqrt(pow(x_leg, 2) + pow(y_leg, 2)); // Pythagoren theorem
+
+    float pre_rotation = atan(y_leg/x_leg);
+
+    // Find new opposite / adjacent with hypot using SOHCAHTOA
+
+    struct coordinate rotated;
+
+    rotated.x = cos(angle_rad-pre_rotation)*hypot;
+    rotated.y = sin(angle_rad-pre_rotation)*hypot;
+    rotated.z = point.z;
+
+    return rotated;
 }
 
-float sdfSphere(float x, float y, float z, float sx, float sy, float sz, float rad) {
-    return sqrt(pow(x-sx, 2) + pow(y-sy, 2) + pow(z-sz, 2)) - rad; // radius
+
+struct sdfInfo {
+    float dist;
+    int r;
+    int g;
+    int b;
+};
+
+struct sdfInfo unify(struct sdfInfo sdf1, struct sdfInfo sdf2) {
+    // Sdf2 cuts out of sdf1
+    struct sdfInfo un;
+
+    un.dist = fmin(sdf1.dist, sdf2.dist);
+
+    if (un.dist == sdf1.dist) {
+        un.r = sdf1.r;
+        un.g = sdf1.g;
+        un.b = sdf1.b;
+    } else {
+        un.r = sdf2.r;
+        un.g = sdf2.g;
+        un.b = sdf2.b;
+    }
+
+    return un;
 }
 
-float signedDistance(float x, float y, float z) {
-    return fmax(sdfCube(x, y, z, 0, 0, 0, 1), -sdfSphere(x, y, z, 0, 0, 0, 1.2));
+struct sdfInfo negate(struct sdfInfo sdf1, struct sdfInfo sdf2) {
+    // Sdf2 cuts out of sdf1
+    struct sdfInfo negation;
+
+    negation.dist = fmax(sdf1.dist, -sdf2.dist);
+    negation.r = sdf1.r;
+    negation.g = sdf1.g;
+    negation.b = sdf1.b;
+
+    return negation;
 }
+
+struct sdfInfo sdfCube(struct coordinate point, struct coordinate position, float size, int r=100, int g=100, int b=100) {
+    float dx = abs(point.x - position.x)-size;
+    float dy = abs(point.y - position.y)-size;
+    float dz = abs(point.z - position.z)-size;
+
+    struct sdfInfo cube;
+
+    cube.dist = fmax(dx, fmax(dy, dz));
+    cube.r = r;
+    cube.g = g;
+    cube.b = b;
+
+    return cube;
+}
+
+struct sdfInfo sdfSphere(struct coordinate point, struct coordinate position, float rad) {
+    struct sdfInfo sphere;
+
+    sphere.dist = sqrt(pow(point.x-position.x, 2) + pow(point.y-position.y, 2) + pow(point.z-position.z, 2)) - rad;
+    sphere.r = 0;
+    sphere.g = 0;
+    sphere.b = 255;
+
+    return sphere;
+}
+
+struct sdfInfo signedDistance(float x, float y, float z, int time) {
+    struct coordinate pos;
+    pos.x = 0;
+    pos.y = 0;
+    pos.z = 0;
+
+    struct coordinate point;
+    point.x = x;
+    point.y = y;
+    point.z = z;
+    
+    return unify(
+        negate(
+            sdfCube(rotate(point, pos, ((float)time/10)), pos, 1, 180, 0, 255),
+            sdfSphere(point, pos, 1.2)
+        ),
+
+        negate(
+            sdfCube(point, pos, 10),
+            sdfCube(point, pos, 9)
+        )
+    );
+}
+
+float signedDistanceOnly(float x, float y, float z, int time) {
+    struct sdfInfo result = signedDistance(x, y, z, time);
+    return result.dist;
+}
+
+//float sdfInfinite(float x, float y, float z) {
+//    return signedDistance(fmod(x, 5.0), fmod(y, 5.0), fmod(z, 5.0));
+//}
 
 
 float* ray_vector(float scan_pitch, float scan_yaw, float cam_pitch, float cam_yaw) {
@@ -88,7 +203,7 @@ int main() {
     };
 
     int ray_color[3];
-    auto cast = [](int color_out[], float scan_pitch, float scan_yaw, float cam_pitch, float cam_yaw, float cam_x, float cam_y, float cam_z, int slices) {
+    auto cast = [](int color_out[], float scan_pitch, float scan_yaw, float cam_pitch, float cam_yaw, float cam_x, float cam_y, float cam_z, int slices, int frame) {
         float* vector = ray_vector(scan_pitch, scan_yaw, cam_pitch, cam_yaw);
 
         float point[3] = {cam_x, cam_y, cam_z};
@@ -98,27 +213,35 @@ int main() {
         color_out[1] = 255;
         color_out[2] = 255;
 
-        float dist;
         float thresh = 0.01; // When the program decides that the distance is close enough to change the color of the pixel
 
         for (int s=0; s<64; s++) {
-            dist = signedDistance(point[0], point[1], point[2]);
+            struct sdfInfo sdf = signedDistance(point[0], point[1], point[2], frame);
 
             // Ray has hit object
-            if (dist < thresh) {
+            if (sdf.dist < thresh) {
                 float eps = 0.02;
-                float norm_X = (signedDistance(point[0]+eps, point[1], point[2]) - signedDistance(point[0]-eps, point[1], point[2])) / (eps*2);
+                float norm_X = (signedDistanceOnly(point[0]+eps, point[1], point[2], frame) - signedDistanceOnly(point[0]-eps, point[1], point[2], frame)) / (eps*2);
+                float norm_Y = (signedDistanceOnly(point[0], point[1]+eps, point[2], frame) - signedDistanceOnly(point[0], point[1]-eps, point[2], frame)) / (eps*2);
+                float norm_Z = (signedDistanceOnly(point[0], point[1], point[2]+eps, frame) - signedDistanceOnly(point[0], point[1], point[2]-eps, frame)) / (eps*2);
+
+                float light[3] = {1.0, 1.0, 1.0};
+
+                // See how close it is to the light normal (average difference of normals)
+                float lit_factor = ((abs(norm_X-light[0]) + abs(norm_Y-light[1]) + abs(norm_Z-light[2]))/3)/2;
+                // Flip because normals facing opposite to the light should be the most well lit
+                lit_factor = 1-lit_factor;
 
 
-                color_out[0] = 255; //100-s*6;
-                color_out[1] = 100+(100*norm_X);
-                color_out[2] = 0;
+                color_out[0] = sdf.r*lit_factor; //100-s*6;
+                color_out[1] = sdf.g*lit_factor;
+                color_out[2] = sdf.b*lit_factor;
                 return;
             }
 
-            point[0] += vector[0]*dist;
-            point[1] += vector[1]*dist;
-            point[2] += vector[2]*dist;
+            point[0] += vector[0]*sdf.dist;
+            point[1] += vector[1]*sdf.dist;
+            point[2] += vector[2]*sdf.dist;
         }
     };
 
@@ -214,7 +337,7 @@ int main() {
                 float rel_x = ((float)x/win.screen_width)-0.5;
                 float rel_y = ((float)y/win.screen_width)-0.5;
 
-                cast(ray_color, rel_x, rel_y, camera_rx_rad, camera_ry_rad, camera_x, camera_y, camera_z, 8);
+                cast(ray_color, rel_x, rel_y, camera_rx_rad, camera_ry_rad, camera_x, camera_y, camera_z, 8, frame);
 
                 //std::cout << rel_x;
                 
